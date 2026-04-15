@@ -8,13 +8,17 @@ CREATE TYPE "PaymentStatus" AS ENUM ('UNPAID', 'PAID');
 CREATE TYPE "DiscountType" AS ENUM ('PERCENTAGE', 'FIXED');
 
 -- CreateEnum
+CREATE TYPE "DiscountSource" AS ENUM ('AUTO', 'MANUAL');
+
+-- CreateEnum
 CREATE TYPE "ServiceUnit" AS ENUM ('KG', 'ITEM');
 
 -- CreateTable
 CREATE TABLE "customers" (
-    "id" SERIAL NOT NULL,
+    "id" UUID NOT NULL,
     "name" VARCHAR(100) NOT NULL,
     "phone" VARCHAR(20) NOT NULL,
+    "address" TEXT,
     "transaction_count" INTEGER NOT NULL DEFAULT 0,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
@@ -24,7 +28,7 @@ CREATE TABLE "customers" (
 
 -- CreateTable
 CREATE TABLE "services" (
-    "id" SERIAL NOT NULL,
+    "id" UUID NOT NULL,
     "name" VARCHAR(100) NOT NULL,
     "unit" "ServiceUnit" NOT NULL,
     "price" INTEGER NOT NULL,
@@ -36,14 +40,15 @@ CREATE TABLE "services" (
 
 -- CreateTable
 CREATE TABLE "orders" (
-    "id" SERIAL NOT NULL,
-    "customer_id" INTEGER NOT NULL,
+    "id" UUID NOT NULL,
+    "customer_id" UUID NOT NULL,
     "order_status" "OrderStatus" NOT NULL DEFAULT 'PENDING',
     "payment_status" "PaymentStatus" NOT NULL DEFAULT 'UNPAID',
     "subtotal" INTEGER NOT NULL,
     "discount_type" "DiscountType",
     "discount_value" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "discount_amount" INTEGER NOT NULL DEFAULT 0,
+    "discount_source" "DiscountSource" DEFAULT 'AUTO',
     "total_price" INTEGER NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
@@ -53,9 +58,9 @@ CREATE TABLE "orders" (
 
 -- CreateTable
 CREATE TABLE "order_items" (
-    "id" SERIAL NOT NULL,
-    "order_id" INTEGER NOT NULL,
-    "service_id" INTEGER NOT NULL,
+    "id" UUID NOT NULL,
+    "order_id" UUID NOT NULL,
+    "service_id" UUID NOT NULL,
     "qty" DOUBLE PRECISION NOT NULL,
     "price" INTEGER NOT NULL,
     "subtotal" INTEGER NOT NULL,
@@ -67,9 +72,10 @@ CREATE TABLE "order_items" (
 
 -- CreateTable
 CREATE TABLE "discount_rules" (
-    "id" SERIAL NOT NULL,
+    "id" UUID NOT NULL,
     "name" VARCHAR(100) NOT NULL,
     "min_transaction" INTEGER NOT NULL,
+    "is_repeatable" BOOLEAN NOT NULL DEFAULT true,
     "discount_type" "DiscountType" NOT NULL,
     "discount_value" DOUBLE PRECISION NOT NULL,
     "max_discount_amount" INTEGER,

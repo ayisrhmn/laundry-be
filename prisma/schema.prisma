@@ -21,15 +21,21 @@ enum DiscountType {
   FIXED
 }
 
+enum DiscountSource {
+  AUTO
+  MANUAL
+}
+
 enum ServiceUnit {
   KG
   ITEM
 }
 
 model Customer {
-  id               Int      @id @default(autoincrement())
+  id               String   @id @default(uuid()) @db.Uuid
   name             String   @db.VarChar(100)
   phone            String   @unique @db.VarChar(20)
+  address          String?  @db.Text
   transactionCount Int      @default(0) @map("transaction_count")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
@@ -41,12 +47,12 @@ model Customer {
 }
 
 model Service {
-  id        Int         @id @default(autoincrement())
-  name      String      @unique @db.VarChar(100)
-  unit      ServiceUnit
-  price     Int
-  createdAt DateTime    @default(now()) @map("created_at")
-  updatedAt DateTime    @updatedAt @map("updated_at")
+  id         String      @id @default(uuid()) @db.Uuid
+  name       String      @unique @db.VarChar(100)
+  unit       ServiceUnit
+  price      Int
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
   orderItems OrderItem[]
 
   @@index([unit])
@@ -54,18 +60,19 @@ model Service {
 }
 
 model Order {
-  id             Int           @id @default(autoincrement())
-  customerId     Int           @map("customer_id")
-  orderStatus    OrderStatus   @default(PENDING) @map("order_status")
-  paymentStatus  PaymentStatus @default(UNPAID) @map("payment_status")
+  id             String          @id @default(uuid()) @db.Uuid
+  customerId     String          @map("customer_id") @db.Uuid
+  orderStatus    OrderStatus     @default(PENDING) @map("order_status")
+  paymentStatus  PaymentStatus   @default(UNPAID) @map("payment_status")
   subtotal       Int
-  discountType   DiscountType? @map("discount_type")
-  discountValue  Float         @default(0) @map("discount_value")
-  discountAmount Int           @default(0) @map("discount_amount")
-  totalPrice     Int           @map("total_price")
-  createdAt      DateTime      @default(now()) @map("created_at")
-  updatedAt      DateTime      @updatedAt @map("updated_at")
-  customer       Customer      @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  discountType   DiscountType?   @map("discount_type")
+  discountValue  Float           @default(0) @map("discount_value")
+  discountAmount Int             @default(0) @map("discount_amount")
+  discountSource DiscountSource? @default(AUTO) @map("discount_source")
+  totalPrice     Int             @map("total_price")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  customer       Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   items          OrderItem[]
 
   @@index([customerId, createdAt])
@@ -75,9 +82,9 @@ model Order {
 }
 
 model OrderItem {
-  id        Int      @id @default(autoincrement())
-  orderId   Int      @map("order_id")
-  serviceId Int      @map("service_id")
+  id        String   @id @default(uuid()) @db.Uuid
+  orderId   String   @map("order_id") @db.Uuid
+  serviceId String   @map("service_id") @db.Uuid
   qty       Float
   price     Int
   subtotal  Int
@@ -92,9 +99,10 @@ model OrderItem {
 }
 
 model DiscountRule {
-  id                Int          @id @default(autoincrement())
+  id                String       @id @default(uuid()) @db.Uuid
   name              String       @unique @db.VarChar(100)
   minTransaction    Int          @map("min_transaction")
+  isRepeatable      Boolean      @default(true) @map("is_repeatable")
   discountType      DiscountType @map("discount_type")
   discountValue     Float        @map("discount_value")
   maxDiscountAmount Int?         @map("max_discount_amount")

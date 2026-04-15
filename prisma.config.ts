@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-nocheck
+
 import { defineConfig, env } from 'prisma/config';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';

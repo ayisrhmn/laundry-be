@@ -9,6 +9,8 @@ import { CustomersModule } from './customers/customers.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ServicesModule } from './services/services.module';
+import { OrdersModule } from './orders/orders.module';
+import { DiscountRulesModule } from './discount-rules/discount-rules.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -21,6 +23,8 @@ import { RolesGuard } from './common/guards/roles.guard';
     UsersModule,
     CustomersModule,
     ServicesModule,
+    OrdersModule,
+    DiscountRulesModule,
   ],
   controllers: [AppController],
   providers: [

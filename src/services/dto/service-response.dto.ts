@@ -1,4 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { CreatedByResponseDto } from '../../common/dto/created-by.dto';
 import { ServiceUnit } from '@prisma/client';
 
 export class ServiceResponseDto {
@@ -26,6 +27,13 @@ export class ServiceResponseDto {
     example: 50000,
   })
   price!: number;
+
+  @ApiPropertyOptional({
+    description: 'User who created this record',
+    type: () => CreatedByResponseDto,
+    nullable: true,
+  })
+  createdBy!: CreatedByResponseDto | null;
 
   @ApiProperty({
     description: 'Record creation timestamp',

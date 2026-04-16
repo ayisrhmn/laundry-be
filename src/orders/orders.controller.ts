@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Query,
+  Request,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -47,8 +48,11 @@ export class OrdersController {
   @ApiCreatedResponse({ type: ApiResponseOf(OrderResponseDto) })
   @ApiNotFoundResponse({ description: 'Customer or service not found.' })
   @ApiBadRequestResponse({ description: 'Invalid request data.' })
-  create(@Body() dto: CreateOrderDto) {
-    return this.ordersService.create(dto);
+  create(
+    @Request() req: { user: { id: string } },
+    @Body() dto: CreateOrderDto,
+  ) {
+    return this.ordersService.create(dto, req.user.id);
   }
 
   @Roles(UserRole.ADMIN, UserRole.OPERATOR)

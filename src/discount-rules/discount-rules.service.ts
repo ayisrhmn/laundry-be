@@ -4,6 +4,17 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+
+const CREATED_BY_SELECT = {
+  id: true,
+  username: true,
+  fullName: true,
+  role: true,
+} as const;
+
+type DiscountRuleWithCreatedBy = Prisma.DiscountRuleGetPayload<{
+  include: { createdBy: { select: typeof CREATED_BY_SELECT } };
+}>;
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateDiscountRuleDto } from './dto/create-discount-rule.dto';
 import { UpdateDiscountRuleDto } from './dto/update-discount-rule.dto';
@@ -15,11 +26,16 @@ import { PaginatedResult } from '../common/dto/paginated.dto';
 export class DiscountRulesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateDiscountRuleDto): Promise<DiscountRuleResponseDto> {
+  async create(
+    dto: CreateDiscountRuleDto,
+    createdById: string,
+  ): Promise<DiscountRuleResponseDto> {
     try {
-      return await this.prisma.discountRule.create({
-        data: dto,
+      const rule = await this.prisma.discountRule.create({
+        data: { ...dto, createdById },
+        include: { createdBy: { select: CREATED_BY_SELECT } },
       });
+      return this.mapToResponse(rule);
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -45,6 +61,7 @@ export class DiscountRulesService {
     const [data, total] = await this.prisma.$transaction([
       this.prisma.discountRule.findMany({
         where,
+        include: { createdBy: { select: CREATED_BY_SELECT } },
         orderBy: { minTransaction: 'asc' },
         skip: (page - 1) * limit,
         take: limit,
@@ -53,7 +70,7 @@ export class DiscountRulesService {
     ]);
 
     return {
-      data,
+      data: data.map((r) => this.mapToResponse(r)),
       pagination: {
         total,
         page,
@@ -66,13 +83,14 @@ export class DiscountRulesService {
   async findOne(id: string): Promise<DiscountRuleResponseDto> {
     const rule = await this.prisma.discountRule.findUnique({
       where: { id },
+      include: { createdBy: { select: CREATED_BY_SELECT } },
     });
 
     if (!rule) {
       throw new NotFoundException(`Discount rule with id '${id}' not found.`);
     }
 
-    return rule;
+    return this.mapToResponse(rule);
   }
 
   async update(
@@ -83,10 +101,12 @@ export class DiscountRulesService {
     await this.findOne(id);
 
     try {
-      return await this.prisma.discountRule.update({
+      const rule = await this.prisma.discountRule.update({
         where: { id },
         data: dto,
+        include: { createdBy: { select: CREATED_BY_SELECT } },
       });
+      return this.mapToResponse(rule);
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -104,8 +124,27 @@ export class DiscountRulesService {
     // Check rule exists
     await this.findOne(id);
 
-    return await this.prisma.discountRule.delete({
+    const rule = await this.prisma.discountRule.delete({
       where: { id },
+      include: { createdBy: { select: CREATED_BY_SELECT } },
     });
+    return this.mapToResponse(rule);
+  }
+
+  private mapToResponse(
+    rule: DiscountRuleWithCreatedBy,
+  ): DiscountRuleResponseDto {
+    return {
+      id: rule.id,
+      name: rule.name,
+      minTransaction: rule.minTransaction,
+      isRepeatable: rule.isRepeatable,
+      discountType: rule.discountType,
+      discountValue: rule.discountValue,
+      maxDiscountAmount: rule.maxDiscountAmount,
+      createdBy: rule.createdBy,
+      createdAt: rule.createdAt,
+      updatedAt: rule.updatedAt,
+    };
   }
 }

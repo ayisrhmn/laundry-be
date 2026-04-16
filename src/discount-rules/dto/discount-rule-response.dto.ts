@@ -1,4 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { CreatedByResponseDto } from '../../common/dto/created-by.dto';
 import { DiscountType } from '@prisma/client';
 
 export class DiscountRuleResponseDto {
@@ -46,6 +47,13 @@ export class DiscountRuleResponseDto {
     nullable: true,
   })
   maxDiscountAmount!: number | null;
+
+  @ApiPropertyOptional({
+    description: 'User who created this record',
+    type: () => CreatedByResponseDto,
+    nullable: true,
+  })
+  createdBy!: CreatedByResponseDto | null;
 
   @ApiProperty({
     description: 'Timestamp when rule was created',

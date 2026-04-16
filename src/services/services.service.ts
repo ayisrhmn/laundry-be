@@ -4,6 +4,17 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+
+const CREATED_BY_SELECT = {
+  id: true,
+  username: true,
+  fullName: true,
+  role: true,
+} as const;
+
+type ServiceWithCreatedBy = Prisma.ServiceGetPayload<{
+  include: { createdBy: { select: typeof CREATED_BY_SELECT } };
+}>;
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
@@ -14,9 +25,16 @@ import { PaginatedResult } from '../common/dto/paginated.dto';
 export class ServicesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateServiceDto): Promise<ServiceResponseDto> {
+  async create(
+    dto: CreateServiceDto,
+    createdById: string,
+  ): Promise<ServiceResponseDto> {
     try {
-      return await this.prisma.service.create({ data: dto });
+      const service = await this.prisma.service.create({
+        data: { ...dto, createdById },
+        include: { createdBy: { select: CREATED_BY_SELECT } },
+      });
+      return this.mapToResponse(service);
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -42,6 +60,7 @@ export class ServicesService {
     const [data, total] = await this.prisma.$transaction([
       this.prisma.service.findMany({
         where,
+        include: { createdBy: { select: CREATED_BY_SELECT } },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
@@ -50,7 +69,7 @@ export class ServicesService {
     ]);
 
     return {
-      data,
+      data: data.map((s) => this.mapToResponse(s)),
       pagination: {
         total,
         page,
@@ -61,21 +80,26 @@ export class ServicesService {
   }
 
   async findOne(id: string): Promise<ServiceResponseDto> {
-    const service = await this.prisma.service.findUnique({ where: { id } });
+    const service = await this.prisma.service.findUnique({
+      where: { id },
+      include: { createdBy: { select: CREATED_BY_SELECT } },
+    });
     if (!service) {
       throw new NotFoundException(`Service with id '${id}' not found.`);
     }
-    return service;
+    return this.mapToResponse(service);
   }
 
   async update(id: string, dto: UpdateServiceDto): Promise<ServiceResponseDto> {
     await this.findOne(id);
 
     try {
-      return await this.prisma.service.update({
+      const service = await this.prisma.service.update({
         where: { id },
         data: dto,
+        include: { createdBy: { select: CREATED_BY_SELECT } },
       });
+      return this.mapToResponse(service);
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -91,6 +115,22 @@ export class ServicesService {
 
   async delete(id: string): Promise<ServiceResponseDto> {
     await this.findOne(id);
-    return await this.prisma.service.delete({ where: { id } });
+    const service = await this.prisma.service.delete({
+      where: { id },
+      include: { createdBy: { select: CREATED_BY_SELECT } },
+    });
+    return this.mapToResponse(service);
+  }
+
+  private mapToResponse(service: ServiceWithCreatedBy): ServiceResponseDto {
+    return {
+      id: service.id,
+      name: service.name,
+      unit: service.unit,
+      price: service.price,
+      createdBy: service.createdBy,
+      createdAt: service.createdAt,
+      updatedAt: service.updatedAt,
+    };
   }
 }

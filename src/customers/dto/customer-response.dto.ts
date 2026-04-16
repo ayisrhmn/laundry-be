@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { CreatedByResponseDto } from '../../common/dto/created-by.dto';
 
 export class CustomerResponseDto {
   @ApiProperty({
@@ -25,6 +26,13 @@ export class CustomerResponseDto {
 
   @ApiProperty({ description: 'Total number of transactions', example: 3 })
   transactionCount!: number;
+
+  @ApiPropertyOptional({
+    description: 'User who created this record',
+    type: () => CreatedByResponseDto,
+    nullable: true,
+  })
+  createdBy!: CreatedByResponseDto | null;
 
   @ApiProperty({
     description: 'Record creation timestamp',

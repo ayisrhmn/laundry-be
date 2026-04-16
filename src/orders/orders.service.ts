@@ -16,15 +16,41 @@ import { OrderResponseDto } from './dto/order-response.dto';
 import { OrderQueryDto } from './dto/order-query.dto';
 import { PaginatedResult } from '../common/dto/paginated.dto';
 
+const ORDER_INCLUDE = {
+  items: { include: { service: true } },
+  createdBy: {
+    select: {
+      id: true,
+      username: true,
+      fullName: true,
+      role: true,
+    },
+  },
+  discountRule: {
+    select: {
+      id: true,
+      name: true,
+      minTransaction: true,
+      isRepeatable: true,
+      discountType: true,
+      discountValue: true,
+      maxDiscountAmount: true,
+    },
+  },
+} as const;
+
 type OrderWithItems = Prisma.OrderGetPayload<{
-  include: { items: { include: { service: true } } };
+  include: typeof ORDER_INCLUDE;
 }>;
 
 @Injectable()
 export class OrdersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateOrderDto): Promise<OrderResponseDto> {
+  async create(
+    dto: CreateOrderDto,
+    createdById: string,
+  ): Promise<OrderResponseDto> {
     // Validate customer exists
     const customer = await this.prisma.customer.findUnique({
       where: { id: dto.customerId },
@@ -69,6 +95,7 @@ export class OrdersService {
     let discountType: DiscountType | null = null;
     let discountValue = 0;
     let discountSource: DiscountSource | null = null;
+    let discountRuleId: string | null = null;
 
     // If manual discount provided, use it
     if (
@@ -121,6 +148,7 @@ export class OrdersService {
         discountType = applicableRule.discountType;
         discountValue = applicableRule.discountValue;
         discountSource = DiscountSource.AUTO;
+        discountRuleId = applicableRule.id;
 
         if (applicableRule.discountType === 'PERCENTAGE') {
           const amount = Math.floor(
@@ -162,20 +190,18 @@ export class OrdersService {
         data: {
           orderNumber,
           customerId: dto.customerId,
+          createdById,
           paymentStatus: dto.paymentStatus ?? PaymentStatus.UNPAID,
           subtotal,
           discountType: discountType ?? undefined,
           discountValue,
           discountAmount,
           discountSource: discountSource ?? undefined,
+          discountRuleId: discountRuleId ?? undefined,
           totalPrice,
           items: orderItems,
         },
-        include: {
-          items: {
-            include: { service: true },
-          },
-        },
+        include: ORDER_INCLUDE,
       });
 
       // Increment customer transaction count only if order is created as PAID
@@ -246,11 +272,7 @@ export class OrdersService {
     const [data, total] = await this.prisma.$transaction([
       this.prisma.order.findMany({
         where,
-        include: {
-          items: {
-            include: { service: true },
-          },
-        },
+        include: ORDER_INCLUDE,
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
@@ -304,11 +326,7 @@ export class OrdersService {
     const [data, total] = await this.prisma.$transaction([
       this.prisma.order.findMany({
         where,
-        include: {
-          items: {
-            include: { service: true },
-          },
-        },
+        include: ORDER_INCLUDE,
         orderBy: { deletedAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
@@ -330,11 +348,7 @@ export class OrdersService {
   async findOne(id: string): Promise<OrderResponseDto> {
     const order = await this.prisma.order.findUnique({
       where: { id },
-      include: {
-        items: {
-          include: { service: true },
-        },
-      },
+      include: ORDER_INCLUDE,
     });
 
     if (!order) {
@@ -360,11 +374,7 @@ export class OrdersService {
       const result = await tx.order.update({
         where: { id },
         data: dto,
-        include: {
-          items: {
-            include: { service: true },
-          },
-        },
+        include: ORDER_INCLUDE,
       });
 
       // Increment transaction count if payment status changes from UNPAID to PAID
@@ -389,11 +399,7 @@ export class OrdersService {
       const deleted = await tx.order.update({
         where: { id },
         data: { deletedAt: new Date() },
-        include: {
-          items: {
-            include: { service: true },
-          },
-        },
+        include: ORDER_INCLUDE,
       });
 
       // Decrement customer transaction count only if order was PAID
@@ -413,6 +419,7 @@ export class OrdersService {
       id: order.id,
       orderNumber: order.orderNumber,
       customerId: order.customerId,
+      createdBy: order.createdBy,
       orderStatus: order.orderStatus,
       paymentStatus: order.paymentStatus,
       subtotal: order.subtotal,
@@ -420,6 +427,7 @@ export class OrdersService {
       discountValue: order.discountValue,
       discountAmount: order.discountAmount,
       discountSource: order.discountSource,
+      discountRule: order.discountRule,
       totalPrice: order.totalPrice,
       items: order.items.map((item) => ({
         id: item.id,

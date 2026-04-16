@@ -6,6 +6,8 @@ import {
   DiscountSource,
 } from '@prisma/client';
 import { OrderItemResponseDto } from './order-item-response.dto';
+import { CreatedByResponseDto } from '../../common/dto/created-by.dto';
+import { OrderDiscountRuleDto } from './order-discount-rule.dto';
 
 export class OrderResponseDto {
   @ApiProperty({
@@ -79,6 +81,20 @@ export class OrderResponseDto {
     example: 225000,
   })
   totalPrice!: number;
+
+  @ApiPropertyOptional({
+    description: 'Discount rule applied (only when discountSource is AUTO)',
+    type: () => OrderDiscountRuleDto,
+    nullable: true,
+  })
+  discountRule!: OrderDiscountRuleDto | null;
+
+  @ApiPropertyOptional({
+    description: 'User who created this order',
+    type: () => CreatedByResponseDto,
+    nullable: true,
+  })
+  createdBy!: CreatedByResponseDto | null;
 
   @ApiProperty({
     description: 'Order items',

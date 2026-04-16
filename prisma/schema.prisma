@@ -37,14 +37,18 @@ enum UserRole {
 }
 
 model User {
-  id        String   @id @default(uuid()) @db.Uuid
-  username  String   @unique @db.VarChar(50)
-  password  String   @db.VarChar(255)
-  fullName  String   @map("full_name") @db.VarChar(100)
-  role      UserRole @default(OPERATOR)
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id                   String         @id @default(uuid()) @db.Uuid
+  username             String         @unique @db.VarChar(50)
+  password             String         @db.VarChar(255)
+  fullName             String         @map("full_name") @db.VarChar(100)
+  role                 UserRole       @default(OPERATOR)
+  isActive             Boolean        @default(true) @map("is_active")
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
+  createdCustomers     Customer[]
+  createdServices      Service[]
+  createdOrders        Order[]
+  createdDiscountRules DiscountRule[]
 
   @@index([role])
   @@map("users")
@@ -56,8 +60,10 @@ model Customer {
   phone            String   @unique @db.VarChar(20)
   address          String?  @db.Text
   transactionCount Int      @default(0) @map("transaction_count")
+  createdById      String?  @map("created_by_id") @db.Uuid
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
+  createdBy        User?    @relation(fields: [createdById], references: [id], onDelete: SetNull, onUpdate: Cascade)
   orders           Order[]
 
   @@index([name])
@@ -66,13 +72,15 @@ model Customer {
 }
 
 model Service {
-  id         String      @id @default(uuid()) @db.Uuid
-  name       String      @unique @db.VarChar(100)
-  unit       ServiceUnit
-  price      Int
-  createdAt  DateTime    @default(now()) @map("created_at")
-  updatedAt  DateTime    @updatedAt @map("updated_at")
-  orderItems OrderItem[]
+  id          String      @id @default(uuid()) @db.Uuid
+  name        String      @unique @db.VarChar(100)
+  unit        ServiceUnit
+  price       Int
+  createdById String?     @map("created_by_id") @db.Uuid
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  createdBy   User?       @relation(fields: [createdById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  orderItems  OrderItem[]
 
   @@index([unit])
   @@map("services")
@@ -82,6 +90,7 @@ model Order {
   id             String          @id @default(uuid()) @db.Uuid
   orderNumber    String          @unique @map("order_number") @db.VarChar(50)
   customerId     String          @map("customer_id") @db.Uuid
+  createdById    String?         @map("created_by_id") @db.Uuid
   orderStatus    OrderStatus     @default(PENDING) @map("order_status")
   paymentStatus  PaymentStatus   @default(UNPAID) @map("payment_status")
   subtotal       Int
@@ -89,11 +98,14 @@ model Order {
   discountValue  Float           @default(0) @map("discount_value")
   discountAmount Int             @default(0) @map("discount_amount")
   discountSource DiscountSource? @default(AUTO) @map("discount_source")
+  discountRuleId String?         @map("discount_rule_id") @db.Uuid
   totalPrice     Int             @map("total_price")
   deletedAt      DateTime?       @map("deleted_at")
   createdAt      DateTime        @default(now()) @map("created_at")
   updatedAt      DateTime        @updatedAt @map("updated_at")
   customer       Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  createdBy      User?           @relation(fields: [createdById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  discountRule   DiscountRule?   @relation(fields: [discountRuleId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   items          OrderItem[]
 
   @@index([customerId, createdAt])
@@ -128,8 +140,11 @@ model DiscountRule {
   discountType      DiscountType @map("discount_type")
   discountValue     Float        @map("discount_value")
   maxDiscountAmount Int?         @map("max_discount_amount")
+  createdById       String?      @map("created_by_id") @db.Uuid
   createdAt         DateTime     @default(now()) @map("created_at")
   updatedAt         DateTime     @updatedAt @map("updated_at")
+  createdBy         User?        @relation(fields: [createdById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  orders            Order[]
 
   @@index([minTransaction])
   @@map("discount_rules")

@@ -13,13 +13,31 @@ import { CustomerSummaryResponseDto } from './dto/customer-summary-response.dto'
 import { PaginatedResult } from '../common/dto/paginated.dto';
 import { Prisma } from '@prisma/client';
 
+const CREATED_BY_SELECT = {
+  id: true,
+  username: true,
+  fullName: true,
+  role: true,
+} as const;
+
+type CustomerWithCreatedBy = Prisma.CustomerGetPayload<{
+  include: { createdBy: { select: typeof CREATED_BY_SELECT } };
+}>;
+
 @Injectable()
 export class CustomersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateCustomerDto): Promise<CustomerResponseDto> {
+  async create(
+    dto: CreateCustomerDto,
+    createdById: string,
+  ): Promise<CustomerResponseDto> {
     try {
-      return await this.prisma.customer.create({ data: dto });
+      const customer = await this.prisma.customer.create({
+        data: { ...dto, createdById },
+        include: { createdBy: { select: CREATED_BY_SELECT } },
+      });
+      return this.mapToResponse(customer);
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -45,6 +63,7 @@ export class CustomersService {
     const [data, total] = await this.prisma.$transaction([
       this.prisma.customer.findMany({
         where,
+        include: { createdBy: { select: CREATED_BY_SELECT } },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
@@ -53,7 +72,7 @@ export class CustomersService {
     ]);
 
     return {
-      data,
+      data: data.map((c) => this.mapToResponse(c)),
       pagination: {
         total,
         page,
@@ -64,11 +83,14 @@ export class CustomersService {
   }
 
   async findOne(id: string): Promise<CustomerResponseDto> {
-    const customer = await this.prisma.customer.findUnique({ where: { id } });
+    const customer = await this.prisma.customer.findUnique({
+      where: { id },
+      include: { createdBy: { select: CREATED_BY_SELECT } },
+    });
     if (!customer) {
       throw new NotFoundException(`Customer with id '${id}' not found.`);
     }
-    return customer;
+    return this.mapToResponse(customer);
   }
 
   async findOrders(id: string): Promise<CustomerOrderResponseDto[]> {
@@ -88,6 +110,25 @@ export class CustomersService {
         totalPrice: true,
         createdAt: true,
         updatedAt: true,
+        createdBy: {
+          select: {
+            id: true,
+            username: true,
+            fullName: true,
+            role: true,
+          },
+        },
+        discountRule: {
+          select: {
+            id: true,
+            name: true,
+            minTransaction: true,
+            isRepeatable: true,
+            discountType: true,
+            discountValue: true,
+            maxDiscountAmount: true,
+          },
+        },
         items: {
           select: {
             id: true,
@@ -142,7 +183,12 @@ export class CustomersService {
   ): Promise<CustomerResponseDto> {
     await this.findOne(id);
     try {
-      return await this.prisma.customer.update({ where: { id }, data: dto });
+      const customer = await this.prisma.customer.update({
+        where: { id },
+        data: dto,
+        include: { createdBy: { select: CREATED_BY_SELECT } },
+      });
+      return this.mapToResponse(customer);
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -160,5 +206,18 @@ export class CustomersService {
     await this.findOne(id);
     await this.prisma.customer.delete({ where: { id } });
     return null;
+  }
+
+  private mapToResponse(customer: CustomerWithCreatedBy): CustomerResponseDto {
+    return {
+      id: customer.id,
+      name: customer.name,
+      phone: customer.phone,
+      address: customer.address,
+      transactionCount: customer.transactionCount,
+      createdBy: customer.createdBy,
+      createdAt: customer.createdAt,
+      updatedAt: customer.updatedAt,
+    };
   }
 }

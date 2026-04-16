@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Query,
+  Request,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -43,8 +44,11 @@ export class ServicesController {
   @ApiOperation({ summary: 'Create a new service (Admin only)' })
   @ApiCreatedResponse({ type: ApiResponseOf(ServiceResponseDto) })
   @ApiConflictResponse({ description: 'Service name already registered.' })
-  create(@Body() dto: CreateServiceDto) {
-    return this.servicesService.create(dto);
+  create(
+    @Request() req: { user: { id: string } },
+    @Body() dto: CreateServiceDto,
+  ) {
+    return this.servicesService.create(dto, req.user.id);
   }
 
   @Roles(UserRole.ADMIN, UserRole.OPERATOR)

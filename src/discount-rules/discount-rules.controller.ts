@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Query,
+  Request,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -50,8 +51,11 @@ export class DiscountRulesController {
   @ApiConflictResponse({
     description: 'Discount rule with this name already exists.',
   })
-  create(@Body() dto: CreateDiscountRuleDto) {
-    return this.discountRulesService.create(dto);
+  create(
+    @Request() req: { user: { id: string } },
+    @Body() dto: CreateDiscountRuleDto,
+  ) {
+    return this.discountRulesService.create(dto, req.user.id);
   }
 
   @Roles(UserRole.ADMIN, UserRole.OPERATOR)

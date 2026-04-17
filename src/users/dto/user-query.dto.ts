@@ -12,17 +12,11 @@ import {
 } from 'class-validator';
 
 export class UserQueryDto {
-  @ApiPropertyOptional({ description: 'Filter by username' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  username?: string;
-
-  @ApiPropertyOptional({ description: 'Filter by full name' })
+  @ApiPropertyOptional({ description: 'Filter by username or full name' })
   @IsOptional()
   @IsString()
   @MaxLength(100)
-  fullName?: string;
+  search?: string;
 
   @ApiPropertyOptional({ description: 'Filter by role', enum: UserRole })
   @IsOptional()

@@ -26,7 +26,7 @@ export class AuthUserResponseDto {
 
 export class AuthTokenResponseDto {
   @ApiProperty({ example: 'eyJhbGciOiJIUzI1NiIs...' })
-  accessToken!: string;
+  token!: string;
 
   @ApiProperty({ type: AuthUserResponseDto })
   user!: AuthUserResponseDto;

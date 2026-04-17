@@ -24,11 +24,15 @@ export class UsersService {
   async findAll(
     query: UserQueryDto,
   ): Promise<PaginatedResult<UserResponseDto>> {
-    const { username, fullName, role, page, limit } = query;
+    const { search, role, page, limit } = query;
     const where: Prisma.UserWhereInput = {};
 
-    if (username) where.username = { contains: username, mode: 'insensitive' };
-    if (fullName) where.fullName = { contains: fullName, mode: 'insensitive' };
+    if (search) {
+      where.OR = [
+        { username: { contains: search, mode: 'insensitive' } },
+        { fullName: { contains: search, mode: 'insensitive' } },
+      ];
+    }
     if (role) where.role = role;
 
     const [data, total] = await this.prisma.$transaction([

@@ -29,6 +29,7 @@ async function bootstrap() {
 
   app.useGlobalInterceptors(new ResponseInterceptor(app.get(Reflector)));
   app.useGlobalFilters(new HttpExceptionFilter());
+  app.setGlobalPrefix('api');
 
   setupSwagger(app);
 

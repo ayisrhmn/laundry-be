@@ -24,7 +24,7 @@ export class UsersService {
   async findAll(
     query: UserQueryDto,
   ): Promise<PaginatedResult<UserResponseDto>> {
-    const { search, role, page, limit } = query;
+    const { search, role, page, limit, sort } = query;
     const where: Prisma.UserWhereInput = {};
 
     if (search) {
@@ -39,7 +39,7 @@ export class UsersService {
       this.prisma.user.findMany({
         where,
         select: USER_SELECT,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: sort === 'oldest' ? 'asc' : 'desc' },
         skip: (page - 1) * limit,
         take: limit,
       }),

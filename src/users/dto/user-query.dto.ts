@@ -12,7 +12,7 @@ import {
 } from 'class-validator';
 
 export class UserQueryDto {
-  @ApiPropertyOptional({ description: 'Filter by username or full name' })
+  @ApiPropertyOptional({ description: 'Search by username or full name' })
   @IsOptional()
   @IsString()
   @MaxLength(100)

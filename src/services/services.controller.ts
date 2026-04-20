@@ -60,11 +60,7 @@ export class ServicesController {
   })
   @ApiOkResponse({ type: PaginatedApiResponseOf(ServiceResponseDto) })
   findAll(@Query() query: ServiceQueryDto) {
-    return this.servicesService.findAll(
-      query.page ?? 1,
-      query.limit ?? 10,
-      query.name ?? undefined,
-    );
+    return this.servicesService.findAll(query);
   }
 
   @Roles(UserRole.ADMIN, UserRole.OPERATOR)

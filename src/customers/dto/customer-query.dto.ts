@@ -11,7 +11,7 @@ import {
 } from 'class-validator';
 
 export class CustomerQueryDto {
-  @ApiPropertyOptional({ description: 'Filter by full name or phone number' })
+  @ApiPropertyOptional({ description: 'Search by full name or phone number' })
   @IsOptional()
   @IsString()
   @MaxLength(100)

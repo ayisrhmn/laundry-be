@@ -20,6 +20,7 @@ import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { ServiceResponseDto } from './dto/service-response.dto';
 import { PaginatedResult } from '../common/dto/paginated.dto';
+import { ServiceQueryDto } from './dto/service-query.dto';
 
 @Injectable()
 export class ServicesService {
@@ -49,19 +50,18 @@ export class ServicesService {
   }
 
   async findAll(
-    page: number = 1,
-    limit: number = 10,
-    name?: string,
+    query: ServiceQueryDto,
   ): Promise<PaginatedResult<ServiceResponseDto>> {
+    const { search, page, limit, sort } = query;
     const where: Prisma.ServiceWhereInput = {};
 
-    if (name) where.name = { contains: name, mode: 'insensitive' };
+    if (search) where.name = { contains: search, mode: 'insensitive' };
 
     const [data, total] = await this.prisma.$transaction([
       this.prisma.service.findMany({
         where,
         include: { createdBy: { select: CREATED_BY_SELECT } },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: sort === 'newest' ? 'desc' : 'asc' },
         skip: (page - 1) * limit,
         take: limit,
       }),

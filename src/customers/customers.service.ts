@@ -54,17 +54,21 @@ export class CustomersService {
   async findAll(
     query: CustomerQueryDto,
   ): Promise<PaginatedResult<CustomerResponseDto>> {
-    const { name, phone, page, limit } = query;
+    const { search, page, limit, sort } = query;
     const where: Prisma.CustomerWhereInput = {};
 
-    if (name) where.name = { contains: name, mode: 'insensitive' };
-    if (phone) where.phone = { contains: phone };
+    if (search) {
+      where.OR = [
+        { fullName: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search, mode: 'insensitive' } },
+      ];
+    }
 
     const [data, total] = await this.prisma.$transaction([
       this.prisma.customer.findMany({
         where,
         include: { createdBy: { select: CREATED_BY_SELECT } },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: sort === 'oldest' ? 'asc' : 'desc' },
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -211,7 +215,7 @@ export class CustomersService {
   private mapToResponse(customer: CustomerWithCreatedBy): CustomerResponseDto {
     return {
       id: customer.id,
-      name: customer.name,
+      fullName: customer.fullName,
       phone: customer.phone,
       address: customer.address,
       transactionCount: customer.transactionCount,

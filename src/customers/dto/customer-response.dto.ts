@@ -12,7 +12,7 @@ export class CustomerResponseDto {
     description: 'Full name of the customer',
     example: 'Budi Santoso',
   })
-  name!: string;
+  fullName!: string;
 
   @ApiProperty({ description: 'Phone number', example: '+628123456789' })
   phone!: string;

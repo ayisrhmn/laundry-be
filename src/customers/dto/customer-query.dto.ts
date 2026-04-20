@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsEnum,
   IsInt,
   IsOptional,
   IsString,
@@ -10,21 +11,11 @@ import {
 } from 'class-validator';
 
 export class CustomerQueryDto {
-  @ApiPropertyOptional({
-    description: 'Filter by customer name',
-  })
+  @ApiPropertyOptional({ description: 'Filter by full name or phone number' })
   @IsOptional()
   @IsString()
   @MaxLength(100)
-  name?: string;
-
-  @ApiPropertyOptional({
-    description: 'Filter by phone number',
-  })
-  @IsOptional()
-  @IsString()
-  @MaxLength(20)
-  phone?: string;
+  search?: string;
 
   @ApiPropertyOptional({
     description: 'Page number',
@@ -51,4 +42,13 @@ export class CustomerQueryDto {
   @Min(1)
   @Max(100)
   limit: number = 10;
+
+  @ApiPropertyOptional({
+    description: 'Sort by creation date (newest or oldest)',
+    enum: ['newest', 'oldest'],
+    default: 'newest',
+  })
+  @IsOptional()
+  @IsEnum(['newest', 'oldest'])
+  sort: 'newest' | 'oldest' = 'newest';
 }

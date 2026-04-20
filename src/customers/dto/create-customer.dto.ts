@@ -10,7 +10,7 @@ export class CreateCustomerDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  name!: string;
+  fullName!: string;
 
   @ApiProperty({
     description: 'Phone number (must be unique)',

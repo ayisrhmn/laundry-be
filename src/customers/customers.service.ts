@@ -8,8 +8,6 @@ import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { CustomerResponseDto } from './dto/customer-response.dto';
 import { CustomerQueryDto } from './dto/customer-query.dto';
-import { CustomerOrderResponseDto } from './dto/customer-order-response.dto';
-import { CustomerSummaryResponseDto } from './dto/customer-summary-response.dto';
 import { PaginatedResult } from '../common/dto/paginated.dto';
 import { Prisma } from '@prisma/client';
 
@@ -95,90 +93,6 @@ export class CustomersService {
       throw new NotFoundException(`Customer with id '${id}' not found.`);
     }
     return this.mapToResponse(customer);
-  }
-
-  async findOrders(id: string): Promise<CustomerOrderResponseDto[]> {
-    await this.findOne(id);
-    const orders = await this.prisma.order.findMany({
-      where: { customerId: id },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        orderStatus: true,
-        paymentStatus: true,
-        subtotal: true,
-        discountType: true,
-        discountValue: true,
-        discountAmount: true,
-        discountSource: true,
-        totalPrice: true,
-        createdAt: true,
-        updatedAt: true,
-        createdBy: {
-          select: {
-            id: true,
-            username: true,
-            fullName: true,
-            role: true,
-          },
-        },
-        discountRule: {
-          select: {
-            id: true,
-            name: true,
-            minTransaction: true,
-            isRepeatable: true,
-            discountType: true,
-            discountValue: true,
-            maxDiscountAmount: true,
-          },
-        },
-        items: {
-          select: {
-            id: true,
-            serviceId: true,
-            qty: true,
-            price: true,
-            subtotal: true,
-            createdAt: true,
-            updatedAt: true,
-          },
-        },
-      },
-    });
-    return orders as CustomerOrderResponseDto[];
-  }
-
-  async findSummary(id: string): Promise<CustomerSummaryResponseDto> {
-    await this.findOne(id);
-    const orders = await this.prisma.order.findMany({
-      where: { customerId: id },
-      select: { totalPrice: true, paymentStatus: true, orderStatus: true },
-    });
-
-    const totalOrders = orders.length;
-    const completedOrders = orders.filter(
-      (o) => o.orderStatus === 'DONE',
-    ).length;
-    const pendingOrders = orders.filter(
-      (o) => o.orderStatus === 'PENDING',
-    ).length;
-    const paidOrders = orders.filter((o) => o.paymentStatus === 'PAID').length;
-    const unpaidOrders = orders.filter(
-      (o) => o.paymentStatus === 'UNPAID',
-    ).length;
-    const totalSpent = orders
-      .filter((o) => o.paymentStatus === 'PAID')
-      .reduce((sum, o) => sum + o.totalPrice, 0);
-
-    return {
-      totalOrders,
-      completedOrders,
-      pendingOrders,
-      paidOrders,
-      unpaidOrders,
-      totalSpent,
-    };
   }
 
   async update(

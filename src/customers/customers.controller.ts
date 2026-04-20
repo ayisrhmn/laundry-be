@@ -25,11 +25,8 @@ import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { CustomerResponseDto } from './dto/customer-response.dto';
 import { CustomerQueryDto } from './dto/customer-query.dto';
-import { CustomerOrderResponseDto } from './dto/customer-order-response.dto';
-import { CustomerSummaryResponseDto } from './dto/customer-summary-response.dto';
 import { ResponseMessage } from '../common/decorators/response-message.decorator';
 import {
-  ApiArrayResponseOf,
   ApiResponseOf,
   PaginatedApiResponseOf,
 } from '../common/dto/api-response.dto';
@@ -76,31 +73,6 @@ export class CustomersController {
   @ApiNotFoundResponse({ description: 'Customer not found.' })
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.customersService.findOne(id);
-  }
-
-  @Roles(UserRole.ADMIN, UserRole.OPERATOR)
-  @Get(':id/orders')
-  @ResponseMessage('Customer orders retrieved successfully')
-  @ApiOperation({
-    summary: 'Get order history for a customer (Admin and Operator)',
-  })
-  @ApiParam({ name: 'id', description: 'Customer UUID' })
-  @ApiOkResponse({ type: ApiArrayResponseOf(CustomerOrderResponseDto) })
-  @ApiNotFoundResponse({ description: 'Customer not found.' })
-  findOrders(@Param('id', ParseUUIDPipe) id: string) {
-    return this.customersService.findOrders(id);
-  }
-
-  @Get(':id/summary')
-  @ResponseMessage('Customer summary retrieved successfully')
-  @ApiOperation({
-    summary: 'Get statistics summary for a customer (Admin only)',
-  })
-  @ApiParam({ name: 'id', description: 'Customer UUID' })
-  @ApiOkResponse({ type: ApiResponseOf(CustomerSummaryResponseDto) })
-  @ApiNotFoundResponse({ description: 'Customer not found.' })
-  findSummary(@Param('id', ParseUUIDPipe) id: string) {
-    return this.customersService.findSummary(id);
   }
 
   @Roles(UserRole.ADMIN, UserRole.OPERATOR)

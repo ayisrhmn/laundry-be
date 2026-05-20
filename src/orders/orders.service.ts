@@ -18,6 +18,15 @@ import { PaginatedResult } from '../common/dto/paginated.dto';
 
 const ORDER_INCLUDE = {
   items: { include: { service: true } },
+  customer: {
+    select: {
+      id: true,
+      fullName: true,
+      phone: true,
+      address: true,
+      transactionCount: true,
+    },
+  },
   createdBy: {
     select: {
       id: true,
@@ -231,6 +240,7 @@ export class OrdersService {
       maxAmount,
       page = 1,
       limit = 10,
+      sort = 'newest',
     } = query;
     const where: Prisma.OrderWhereInput = {
       deletedAt: null, // Exclude soft-deleted orders
@@ -273,7 +283,7 @@ export class OrdersService {
       this.prisma.order.findMany({
         where,
         include: ORDER_INCLUDE,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: sort === 'newest' ? 'desc' : 'asc' },
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -419,6 +429,7 @@ export class OrdersService {
       id: order.id,
       orderNumber: order.orderNumber,
       customerId: order.customerId,
+      customer: order.customer,
       createdBy: order.createdBy,
       orderStatus: order.orderStatus,
       paymentStatus: order.paymentStatus,

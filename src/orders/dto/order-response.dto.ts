@@ -9,6 +9,23 @@ import { OrderItemResponseDto } from './order-item-response.dto';
 import { CreatedByResponseDto } from '../../common/dto/created-by.dto';
 import { OrderDiscountRuleDto } from './order-discount-rule.dto';
 
+export class OrderCustomerDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty()
+  fullName!: string;
+
+  @ApiProperty()
+  phone!: string;
+
+  @ApiPropertyOptional({ nullable: true })
+  address!: string | null;
+
+  @ApiProperty()
+  transactionCount!: number;
+}
+
 export class OrderResponseDto {
   @ApiProperty({
     description: 'Order UUID',
@@ -27,6 +44,12 @@ export class OrderResponseDto {
     example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
   })
   customerId!: string;
+
+  @ApiProperty({
+    description: 'Customer details',
+    type: () => OrderCustomerDto,
+  })
+  customer!: OrderCustomerDto;
 
   @ApiProperty({
     description: 'Order status',

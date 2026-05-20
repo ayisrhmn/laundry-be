@@ -52,17 +52,23 @@ export class DiscountRulesService {
   async findAll(
     query: DiscountRuleQueryDto,
   ): Promise<PaginatedResult<DiscountRuleResponseDto>> {
-    const { name, discountType, page = 1, limit = 10 } = query;
+    const {
+      search,
+      discountType,
+      page = 1,
+      limit = 10,
+      sort = 'newest',
+    } = query;
     const where: Prisma.DiscountRuleWhereInput = {};
 
-    if (name) where.name = { contains: name, mode: 'insensitive' };
+    if (search) where.name = { contains: search, mode: 'insensitive' };
     if (discountType) where.discountType = discountType;
 
     const [data, total] = await this.prisma.$transaction([
       this.prisma.discountRule.findMany({
         where,
         include: { createdBy: { select: CREATED_BY_SELECT } },
-        orderBy: { minTransaction: 'asc' },
+        orderBy: { createdAt: sort === 'newest' ? 'desc' : 'asc' },
         skip: (page - 1) * limit,
         take: limit,
       }),

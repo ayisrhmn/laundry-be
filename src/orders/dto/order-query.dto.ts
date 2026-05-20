@@ -112,4 +112,13 @@ export class OrderQueryDto {
   @Min(1)
   @Max(100)
   limit?: number = 10;
+
+  @ApiPropertyOptional({
+    description: 'Sort by creation date (newest or oldest)',
+    enum: ['newest', 'oldest'],
+    default: 'newest',
+  })
+  @IsOptional()
+  @IsEnum(['newest', 'oldest'])
+  sort: 'newest' | 'oldest' = 'newest';
 }

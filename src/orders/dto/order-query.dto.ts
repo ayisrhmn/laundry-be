@@ -1,11 +1,12 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
   IsDateString,
   IsEnum,
   IsInt,
   IsOptional,
+  IsString,
   IsUUID,
   Max,
   Min,
@@ -13,6 +14,14 @@ import {
 import { OrderStatus, PaymentStatus, DiscountType } from '@prisma/client';
 
 export class OrderQueryDto {
+  @ApiPropertyOptional({
+    description: 'Search by order number',
+    example: 'ORD-20260416',
+  })
+  @IsOptional()
+  @IsString()
+  search?: string;
+
   @ApiPropertyOptional({
     description: 'Filter by customer UUID',
   })
@@ -65,7 +74,11 @@ export class OrderQueryDto {
     type: Boolean,
   })
   @IsOptional()
-  @Type(() => Boolean)
+  @Transform(({ value }: { value: unknown }) => {
+    if (value === 'true' || value === true) return true;
+    if (value === 'false' || value === false) return false;
+    return value;
+  })
   @IsBoolean()
   hasDiscount?: boolean;
 
@@ -114,11 +127,12 @@ export class OrderQueryDto {
   limit?: number = 10;
 
   @ApiPropertyOptional({
-    description: 'Sort by creation date (newest or oldest)',
-    enum: ['newest', 'oldest'],
+    description:
+      'Sort order: newest/oldest by date, newest_amount (termahal) / oldest_amount (termurah) by total price',
+    enum: ['newest', 'oldest', 'newest_amount', 'oldest_amount'],
     default: 'newest',
   })
   @IsOptional()
-  @IsEnum(['newest', 'oldest'])
-  sort: 'newest' | 'oldest' = 'newest';
+  @IsEnum(['newest', 'oldest', 'newest_amount', 'oldest_amount'])
+  sort: 'newest' | 'oldest' | 'newest_amount' | 'oldest_amount' = 'newest';
 }

@@ -229,6 +229,7 @@ export class OrdersService {
     query: OrderQueryDto,
   ): Promise<PaginatedResult<OrderResponseDto>> {
     const {
+      search,
       customerId,
       orderStatus,
       paymentStatus,
@@ -246,6 +247,7 @@ export class OrdersService {
       deletedAt: null, // Exclude soft-deleted orders
     };
 
+    if (search) where.orderNumber = { contains: search, mode: 'insensitive' };
     if (customerId) where.customerId = customerId;
     if (orderStatus) where.orderStatus = orderStatus;
     if (paymentStatus) where.paymentStatus = paymentStatus;
@@ -279,11 +281,18 @@ export class OrdersService {
       }
     }
 
+    const orderBy: Prisma.OrderOrderByWithRelationInput =
+      sort === 'newest_amount'
+        ? { totalPrice: 'desc' }
+        : sort === 'oldest_amount'
+          ? { totalPrice: 'asc' }
+          : { createdAt: sort === 'newest' ? 'desc' : 'asc' };
+
     const [data, total] = await this.prisma.$transaction([
       this.prisma.order.findMany({
         where,
         include: ORDER_INCLUDE,
-        orderBy: { createdAt: sort === 'newest' ? 'desc' : 'asc' },
+        orderBy,
         skip: (page - 1) * limit,
         take: limit,
       }),

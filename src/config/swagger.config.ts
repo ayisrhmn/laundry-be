@@ -13,6 +13,7 @@ export function setupSwagger(app: INestApplication): void {
     .addTag('Services', 'Laundry service catalog endpoints')
     .addTag('Orders', 'Order management endpoints')
     .addTag('Discount Rules', 'Discount rule management endpoints')
+    .addTag('Dashboard', 'Admin dashboard metrics endpoints')
     .addTag('Health', 'Application health check')
     .build();
 

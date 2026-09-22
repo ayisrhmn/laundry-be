@@ -31,7 +31,10 @@ async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter());
   app.setGlobalPrefix('api');
 
-  setupSwagger(app);
+  // Swagger exposes the full API surface, so keep it out of production.
+  if (process.env.NODE_ENV !== 'production') {
+    setupSwagger(app);
+  }
 
   await app.listen(process.env.PORT ?? 3000);
 }

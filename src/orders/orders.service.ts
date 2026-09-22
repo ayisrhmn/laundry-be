@@ -179,50 +179,72 @@ export class OrdersService {
 
     const totalPrice = subtotal - discountAmount;
 
-    // Generate order number with date (ORD-20260416-001)
-    const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
-    const dailyOrderCount = await this.prisma.order.count({
-      where: {
-        deletedAt: null,
-        createdAt: {
-          gte: new Date(new Date().setHours(0, 0, 0, 0)),
-          lt: new Date(new Date().setHours(23, 59, 59, 999)),
-        },
-      },
-    });
-    const orderNumber = `ORD-${today}-${String(dailyOrderCount + 1).padStart(3, '0')}`;
+    // Day boundaries in the server's local timezone. The date label is derived
+    // from the same boundary used for counting, so the label and the counted
+    // range can never disagree (e.g. around midnight).
+    const startOfDay = new Date(new Date().setHours(0, 0, 0, 0));
+    const endOfDay = new Date(new Date().setHours(23, 59, 59, 999));
+    const datePart = `${startOfDay.getFullYear()}${String(
+      startOfDay.getMonth() + 1,
+    ).padStart(2, '0')}${String(startOfDay.getDate()).padStart(2, '0')}`;
 
-    // Create order with transaction
-    return await this.prisma.$transaction(async (tx) => {
-      // Create order with items
-      const order = await tx.order.create({
-        data: {
-          orderNumber,
-          customerId: dto.customerId,
-          createdById,
-          paymentStatus: dto.paymentStatus ?? PaymentStatus.UNPAID,
-          subtotal,
-          discountType: discountType ?? undefined,
-          discountValue,
-          discountAmount,
-          discountSource: discountSource ?? undefined,
-          discountRuleId: discountRuleId ?? undefined,
-          totalPrice,
-          items: orderItems,
-        },
-        include: ORDER_INCLUDE,
-      });
+    // The order number is generated inside the transaction and retried on a
+    // unique collision, so concurrent creates can never hand out the same
+    // number. The count includes soft-deleted orders so a deleted order never
+    // frees up its number for reuse (which would collide with an existing one).
+    const MAX_RETRIES = 5;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await this.prisma.$transaction(async (tx) => {
+          const dailyOrderCount = await tx.order.count({
+            where: { createdAt: { gte: startOfDay, lt: endOfDay } },
+          });
+          const orderNumber = `ORD-${datePart}-${String(
+            dailyOrderCount + 1,
+          ).padStart(3, '0')}`;
 
-      // Increment customer transaction count only if order is created as PAID
-      if (dto.paymentStatus === PaymentStatus.PAID) {
-        await tx.customer.update({
-          where: { id: dto.customerId },
-          data: { transactionCount: { increment: 1 } },
+          // Create order with items
+          const order = await tx.order.create({
+            data: {
+              orderNumber,
+              customerId: dto.customerId,
+              createdById,
+              paymentStatus: dto.paymentStatus ?? PaymentStatus.UNPAID,
+              subtotal,
+              discountType: discountType ?? undefined,
+              discountValue,
+              discountAmount,
+              discountSource: discountSource ?? undefined,
+              discountRuleId: discountRuleId ?? undefined,
+              totalPrice,
+              items: orderItems,
+            },
+            include: ORDER_INCLUDE,
+          });
+
+          // Increment customer transaction count only if order is created as PAID
+          if (dto.paymentStatus === PaymentStatus.PAID) {
+            await tx.customer.update({
+              where: { id: dto.customerId },
+              data: { transactionCount: { increment: 1 } },
+            });
+          }
+
+          return this.mapOrderToResponse(order);
         });
+      } catch (error) {
+        // Retry only on a unique-constraint collision on the order number,
+        // which can happen when two orders are created at the same instant.
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002' &&
+          attempt < MAX_RETRIES
+        ) {
+          continue;
+        }
+        throw error;
       }
-
-      return this.mapOrderToResponse(order);
-    });
+    }
   }
 
   async findAll(

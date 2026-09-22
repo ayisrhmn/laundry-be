@@ -1,98 +1,104 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Laundry Management API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A REST API for managing a laundry business — customers, service catalog, orders
+with automatic discount rules, and dashboard metrics. Built with
+[NestJS](https://nestjs.com/) and PostgreSQL.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Tech Stack
 
-## Description
+| Area           | Choice                                    |
+| -------------- | ----------------------------------------- |
+| Runtime        | Node.js (bun as package manager)          |
+| Framework      | NestJS 11                                  |
+| Database       | PostgreSQL                                 |
+| ORM            | Prisma 7 (with the `@prisma/adapter-pg` driver adapter) |
+| Auth           | JWT (Passport) with role-based access      |
+| Validation     | class-validator / class-transformer        |
+| API docs       | Swagger (OpenAPI)                          |
+| Security       | Helmet, CORS, rate limiting (Throttler)    |
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Features
 
-## Project setup
+- **Authentication & roles** — JWT login/register; every endpoint is protected by
+  default. Two roles: `ADMIN` and `OPERATOR` (cashier).
+- **Customers** — CRUD with soft delete and a per-customer transaction counter.
+- **Services** — laundry service catalog (price per unit).
+- **Orders** — multi-item orders with per-day sequential numbers
+  (`ORD-YYYYMMDD-NNN`), payment/order status tracking, and discount handling.
+- **Discount rules** — automatic discounts matched by a customer's transaction
+  count (one-off or repeatable), with an optional maximum discount cap; manual
+  discounts are also supported per order.
+- **Dashboard** — revenue, order, discount, and top customer/service metrics.
+- **Consistent responses** — a uniform `{ message, status, data }` envelope
+  (with `pagination` on list endpoints) and centralized error formatting.
 
-```bash
-$ yarn install
-```
+## Getting Started
 
-## Compile and run the project
+### Prerequisites
 
-```bash
-# development
-$ yarn run start
+- [bun](https://bun.sh/)
+- A running PostgreSQL instance
 
-# watch mode
-$ yarn run start:dev
-
-# production mode
-$ yarn run start:prod
-```
-
-## Run tests
+### Setup
 
 ```bash
-# unit tests
-$ yarn run test
-
-# e2e tests
-$ yarn run test:e2e
-
-# test coverage
-$ yarn run test:cov
+bun install
+cp .env.example .env      # then fill in the values below
+bun run db:migrate        # create the schema
+bun run start:dev
 ```
 
-## Deployment
+The API runs on `http://localhost:<PORT>` with a global `/api` prefix.
+Interactive API docs are served at `http://localhost:<PORT>/docs`.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+### Environment variables
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+| Variable         | Description                                                  |
+| ---------------- | ------------------------------------------------------------ |
+| `PORT`           | Port the API listens on.                                     |
+| `DATABASE_URL`   | PostgreSQL connection string.                                |
+| `JWT_SECRET`     | Secret used to sign JWTs (use a long random string).         |
+| `JWT_EXPIRES_IN` | Token lifetime, e.g. `1d`.                                   |
+| `CORS_ORIGIN`    | Allowed frontend origin(s), comma-separated.                 |
+
+## Scripts
 
 ```bash
-$ yarn install -g @nestjs/mau
-$ mau deploy
+# Development
+bun run start:dev        # watch mode
+bun run start:prod       # run the compiled build
+bun run build            # compile to dist/
+
+# Code quality
+bun run lint             # ESLint (auto-fix)
+bun run format           # Prettier
+
+# Database (Prisma)
+bun run db:migrate       # create & apply a migration (local)
+bun run db:deploy        # apply migrations (CI/production)
+bun run db:reset         # reset the database (destructive)
+bun run db:studio        # open Prisma Studio
+bun run db:generate      # regenerate the Prisma client
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Project Structure
 
-## Resources
+```
+src/
+  auth/            Authentication, JWT strategy, login/register
+  users/           User management (ADMIN/OPERATOR accounts)
+  customers/       Customer CRUD
+  services/        Laundry service catalog
+  orders/          Orders and order items
+  discount-rules/  Discount rule configuration
+  dashboard/       Aggregated business metrics
+  common/          Shared guards, interceptors, filters, decorators, DTOs
+  prisma/          Prisma client provider
+prisma/            Schema and migrations
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+## API Documentation
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Once the server is running, open **`/docs`** for the full Swagger UI. Endpoints
+require a Bearer token except `POST /api/auth/register`, `POST /api/auth/login`,
+and `GET /api/health`.

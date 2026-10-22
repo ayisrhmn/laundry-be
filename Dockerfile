@@ -10,7 +10,7 @@ COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 COPY . .
 # prisma.config.ts reads DATABASE_URL; generate does not connect, so a placeholder is enough.
-RUN DATABASE_URL=postgresql://build:build@localhost:5432/build bunx prisma generate \
+RUN DATABASE_URL=postgresql://build:build@localhost:5432/build bun run db:generate \
   && bun run build
 
 FROM base AS runtime

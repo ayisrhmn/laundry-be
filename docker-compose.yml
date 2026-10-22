@@ -1,0 +1,21 @@
+services:
+  laundry-be:
+    build: .
+    container_name: laundry-be
+    restart: unless-stopped
+    init: true
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    # Not published on the host; Caddy reaches it over the shared network.
+    expose:
+      - "3000"
+    networks:
+      - caddy
+    mem_limit: 512m
+
+networks:
+  caddy:
+    name: caddy_default
+    external: true

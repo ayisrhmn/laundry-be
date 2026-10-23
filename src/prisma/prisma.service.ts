@@ -8,8 +8,14 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   constructor() {
+    const connectionString = process.env.DATABASE_URL!;
+    // The pg driver adapter ignores `?schema=` in the URL (the Prisma CLI does
+    // not), so pass it explicitly to keep app queries and migrations aligned.
+    const schema =
+      new URL(connectionString).searchParams.get('schema') ?? undefined;
+
     super({
-      adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
+      adapter: new PrismaPg({ connectionString }, { schema }),
     });
   }
 
